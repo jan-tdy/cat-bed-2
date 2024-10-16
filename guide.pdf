@@ -1,0 +1,86 @@
+## Inteligentný pelech pre mačky
+
+Tento projekt implementuje inteligentný pelech pre mačky s 10 vyhrievanými miestami, detekciou obsadenosti, režimom "nerušiť" a zobrazením informácií na TFT displeji Waveshare ESP32-S3-Touch-LCD-7. Ovládanie a monitorovanie pelechu je možné aj cez webové rozhranie.
+
+### Funkcie
+
+* **Vyhrievané miesta:** 10 vyhrievaných miest pre mačky s individuálnym ovládaním.
+* **Detekcia obsadenosti:** Senzory detekujú, či je miesto obsadené mačkou a automaticky zapínajú/vypínajú vyhrievanie.
+* **Režim "nerušiť":** Možnosť deaktivovať vyhrievanie pre jednotlivé miesta pomocou tlačidiel.
+* **Displej:** Zobrazenie informácií o obsadenosti, režime "nerušiť" a manuálne nastavených informáciách o kŕmení na TFT displeji.
+* **Webové rozhranie:** Zobrazenie informácií o pelechu a možnosť manuálneho nastavenia informácií o kŕmení.
+
+### Hardvér
+
+* Waveshare ESP32-S3-Touch-LCD-7
+* 10x Kapacitný senzor TTP223
+* 10x Vyhrievací element (fólia alebo kábel s nízkou spotrebou, max. 5V)
+* 10x Tlačidlo
+* Napájací adaptér 12V/5A
+* Napäťový regulátor LM7805 (alebo ekvivalentný)
+* Prepojovacie káble
+* Odporúčané: Krabička/kryt pre elektroniku
+
+### Softvér
+
+* Arduino IDE
+* Knižnice:
+    * TFT\_eSPI
+    * ESPAsyncWebServer
+* Kód `pelech-cat-esp32s3.ino`
+* Súbor s webovým rozhraním `index.html`
+
+### Zapojenie
+
+1.  **Pripojenie senzorov:** Pripojte signálny pin každého senzora k digitálnemu pinu na ESP32-S3 (piny 2, 4, 6, 8, 10, 12, 14, 16, 18, 20) a napájacie piny k 5V a GND.
+2.  **Pripojenie vyhrievacích elementov:** Pripojte jeden koniec každého vyhrievacieho elementu k digitálnemu pinu na ESP32-S3 (piny 3, 5, 7, 9, 11, 13, 15, 17, 19, 21) a druhý koniec k GND. **Dôležité:** Uistite sa, že vyhrievacie elementy sú vhodné pre napájanie 5V a majú dostatočne nízku spotrebu.
+3.  **Pripojenie tlačidiel:** Pripojte jeden pin každého tlačidla k digitálnemu pinu na ESP32-S3 (piny 22, 24, 26, 28, 30, 32, 34, 36, 38, 39) a druhý pin k GND.
+4.  **Napájanie:** Pripojte napájací adaptér k napäťovému regulátoru. Výstup z regulátora (5V) pripojte k 5V pinu na ESP32-S3 a k napájacím pinom senzorov.
+
+### Schéma zapojenia
+
+```
+                                        +---------------------+
+                                        |  ESP32-S3-Touch    |
+                                        |     -LCD-7         |
+                                        |                     |
+ +-----+  +-----+  +-----+  +-----+  +-----+  +-----+  +-----+  +-----+  +-----+  +-----+
+ | SEN |--| 2  |  | 4  |  | 6  |  | 8  |  | 10 |  | 12 |  | 14 |  | 16 |  | 18 |  | 20 |
+ +-----+  +-----+  +-----+  +-----+  +-----+  +-----+  +-----+  +-----+  +-----+  +-----+
+ +-----+  +-----+  +-----+  +-----+  +-----+  +-----+  +-----+  +-----+  +-----+  +-----+
+ | HEAT|--| 3  |  | 5  |  | 7  |  | 9  |  | 11 |  | 13 |  | 15 |  | 17 |  | 19 |  | 21 |
+ +-----+  +-----+  +-----+  +-----+  +-----+  +-----+  +-----+  +-----+  +-----+  +-----+
+ +-----+  +-----+  +-----+  +-----+  +-----+  +-----+  +-----+  +-----+  +-----+  +-----+
+ | BTN |--| 22 |  | 24 |  | 26 |  | 28 |  | 30 |  | 32 |  | 34 |  | 36 |  | 38 |  | 39 |
+ +-----+  +-----+  +-----+  +-----+  +-----+  +-----+  +-----+  +-----+  +-----+  +-----+
+                                        |                     |
+                                        +-----+-----+-----+-----+
+                                              | 5V | GND |
+                                              +-----+-----+
+                                                    |
+                                          +--------+--------+
+                                          | ADAPTER|  REG   |
+                                          +--------+--------+
+```
+
+### Spustenie
+
+1.  Nainštalujte Arduino IDE a potrebné knižnice.
+2.  Skopírujte kód `pelech-cat-esp32s3.ino` do Arduino IDE.
+3.  Nahraďte zástupné symboly `NAZOV_WIFI_SIETE` a `HESLO_WIFI_SIETE` s vašimi údajmi o WiFi sieti.
+4.  Pripojte ESP32-S3-Touch-LCD-7 k počítaču a nahrajte kód.
+5.  Skopírujte kód `index.html` a nahrajte ho do ESP32 pomocou SPIFFS upload tool.
+6.  Spustite ESP32-S3-Touch-LCD-7.
+7.  Pripojte sa k WiFi sieti, ku ktorej je ESP32 pripojené.
+8.  Otvorte webové rozhranie v prehliadači zadaním IP adresy ESP32.
+
+### Použitie
+
+* Na webovom rozhraní môžete sledovať obsadenosť miest, režim "nerušiť" a manuálne nastaviť informácie o kŕmení.
+* Tlačidlami na pelechu môžete aktivovať/deaktivovať režim "nerušiť" pre jednotlivé miesta.
+
+### Poznámky
+
+* Uistite sa, že všetky komponenty sú správne zapojené a napájané.
+* Pred použitím pelechu pre mačky skontrolujte, či sú všetky vyhrievacie elementy správne fungujúce a či teplota nie je príliš vysoká.
+* Pravidelne kontrolujte stav pelechu a v prípade potreby ho vyčistite.
