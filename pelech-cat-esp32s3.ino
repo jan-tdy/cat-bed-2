@@ -16,6 +16,7 @@ AsyncWebServer server(80);
 // Premenné pre uloženie dát 
 bool bedOccupied[10] = {false};
 bool doNotDisturb[10] = {false};
+bool heatingEnabled[10] = {false}; 
 
 // Definovanie pinov pre senzory, vyhrievacie elementy a tlačidlá
 const int sensorPins[10] = {2, 4, 6, 8, 10, 12, 14, 16, 18, 20};
@@ -37,52 +38,132 @@ int currentFeeding = 0;
 // Premenné pre manuálne nastavenie kŕmenia
 String manualFeedInfo = ""; 
 bool manualFeedSet = false;
-
-// Funkcia pre zobrazenie informácií na displeji
+  // Funkcia pre zobrazenie informácií na displeji
 void displayInfo() {
-  // ... (kód pre zobrazenie informácií na displeji) ...
-}
+  tft.fillScreen(TFT_BLACK);
+  tft.setCursor(0, 0, 4);
+  tft.setTextColor(TFT_WHITE);
+  tft.println("Inteligentny pelech");
 
-void setup() {
-  // ... (kód pre inicializáciu) ...
+  // Zobrazenie obsadenosti
+  for (int i = 0; i < 10; i++) {
+    tft.setCursor(0, 60 + i * 30, 2); 
+    tft.print("Miesto " + String(i + 1) + ": ");
+    if (bedOccupied[i]) {
+      tft.setTextColor(TFT_GREEN);
+      tft.println("Obsadené");
+    } else {
+      tft.setTextColor(TFT_RED);
+      tft.println("Volné");
+    }
+  }
+
+  // Zobrazenie režimu "nerušiť"
+  for (int i = 0; i < 10; i++) {
+    tft.setCursor(250, 60 + i * 30, 2); 
+    if (doNotDisturb[i]) {
+      tft.setTextColor(TFT_YELLOW);
+      tft.println("!");
+    } else {
+      tft.setTextColor(TFT_WHITE);
+      tft.println(" ");
+    }
+  }
+
+  // Zobrazenie informácií o kŕmení
+  tft.setCursor(0, 400, 2); 
+  tft.setTextColor(TFT_WHITE);
+  tft.println("Dalsie krmenie:");
+  tft.setCursor(0, 430, 2);
+  if (manualFeedSet) {
+    tft.println(manualFeedInfo);
+  } else {
+    tft.println(feedTimes[currentFeeding] + " " + String(feedGrams[currentFeeding]) + "g");
+  }
+}
+    void setup() {
+  // Inicializácia sériovej komunikácie
+  Serial.begin(115200);
+
+  // Inicializácia TFT displeja
+  tft.init();
+  tft.setRotation(3); 
+  tft.fillScreen(TFT_BLACK);
+
+  // Pripojenie k WiFi sieti
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.println("Pripájanie k WiFi..");
+  }
+  Serial.println(WiFi.localIP());
+
+  // Inicializácia SPIFFS
+  if(!SPIFFS.begin(true)){
+    Serial.println("Chyba pri inicializácii SPIFFS");
+    return;
+  }
+
+  // Nastavenie pinov pre senzory, vyhrievacie elementy a tlačidlá
+  for (int i = 0; i < 10; i++) {
+    pinMode(sensorPins[i], INPUT);
+    pinMode(heaterPins[i], OUTPUT);
+    pinMode(buttonPins[i], INPUT_PULLUP); 
+  }
 
   // Definovanie endpointu pre hlavnú stránku
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(SPIFFS, "/index.html", "text/html");
   });
 
-  // ... (ostatné endpointy) ...
+  // Endpoint pre získanie stavu obsadenosti
+  server.on("/occupancy", HTTP_GET, [](AsyncWebServerRequest *request){
+    String occupancy = "";
+    for (int i = 0; i < 10; i++) {
+      occupancy += bedOccupied[i] ? "1" : "0";
+    }
+    request->send(200, "text/plain", occupancy);
+  });
 
-  // Spustenie webového servera
-  server.begin();
-}
+  // Endpoint pre získanie stavu režimu "nerušiť"
+  server.on("/dnd", HTTP_GET, [](AsyncWebServerRequest *request){
+    String dnd = "";
+    for (int i = 0; i < 10; i++) {
+      dnd += doNotDisturb[i] ? "1" : "0";
+    }
+    request->send(200, "text/plain", dnd);
+  });
 
-void loop() {
-  // ... (kód pre čítanie senzorov, ovládanie vyhrievania a režimu "nerušiť") ...
+  // Endpoint pre získanie informácií o kŕmení
+  server.on("/feeding", HTTP_GET, [](AsyncWebServerRequest *request){
+    String feedingInfo = manualFeedSet ? manualFeedInfo : (currentFeedTime + " " + String(currentFeedGrams) + "g");
+    request->send(200, "text/plain", feedingInfo);
+  });
 
-  // Zobrazenie informácií na displeji
-  displayInfo();
+  // Endpoint pre manuálne nastavenie kŕmenia
+  server.on("/setManualFeed", HTTP_POST, [](AsyncWebServerRequest *request){
+    if (request->hasParam("feedInfo", true)) {
+      manualFeedInfo = request->getParam("feedInfo", true)->value();
+      manualFeedSet = true;
+      request->send(200, "text/plain", "Manualne krmenie nastavene");
+    } else {
+      request->send(400, "text/plain", "Chýba parameter 'feedInfo'");
+    }
+  });
 
-  // Zvýšenie indexu aktuálneho kŕmenia
-  currentFeeding = (currentFeeding + 1) % NUM_FEEDINGS;
+  // Endpointy pre ovládanie
+  server.on("/occupancy/:index", HTTP_GET, [](AsyncWebServerRequest *request){
+    int index = request->pathArg("index").toInt();
+    if (index >= 0 && index < 10) {
+      bedOccupied[index] = !bedOccupied[index];
+      request->send(200, "text/plain", "Obsadenosť prepnutie");
+    } else {
+      request->send(400, "text/plain", "Neplatný index");
+    }
+  });
 
-  // Odoslanie dát na ESP32 cez sériovú komunikáciu
-  String data = "o"; // Začiatok reťazca s označením "o" pre obsadenosť
-  for (int i = 0; i < 10; i++) {
-    data += bedOccupied[i] ? "1" : "0"; 
-  }
-  data += ";d"; // Označenie "d" pre "do not disturb"
-  for (int i = 0; i < 10; i++) {
-    data += doNotDisturb[i] ? "1" : "0";
-  }
-  data += ";f"; // Označenie "f" pre feeding (kŕmenie)
-  if (manualFeedSet) {
-    data += manualFeedInfo;
-  } else {
-    data += feedTimes[currentFeeding] + ";" + String(feedGrams[currentFeeding]);
-  }
-  Serial.println(data); // Odoslanie dát cez sériový port
-
-  // Čakanie 1 sekundu
-  delay(1000);
-}
+  server.on("/heating/:index", HTTP_GET, [](AsyncWebServerRequest *request){
+    int index = request->pathArg("index").toInt();
+    if (index >= 0 && index < 10) {
+      heatingEnabled[index] = !heatingEnabled[index]; // Prepnutie stavu vyhrievania
+      digitalWrite(heaterPins[index], heatingEnabled[index]); // Zapnutie/vypnutie vyhrievania
