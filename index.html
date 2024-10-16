@@ -9,11 +9,11 @@
   <h2>Obsadenosť</h2>
   <div id="occupancy"></div>
 
+  <h2>Vyhrievanie</h2>
+  <div id="heating"></div>
+
   <h2>Režim "nerušiť"</h2>
   <div id="dnd"></div>
-
-  <h2>Kŕmenie</h2>
-  <div id="feeding"></div>
 
   <h2>Manuálne kŕmenie</h2>
   <form id="manualFeedForm">
@@ -22,38 +22,53 @@
     <button type="submit">Nastaviť</button>
   </form>
 
+  <h2>Ovládanie</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Miesto</th>
+        <th>Obsadenosť</th>
+        <th>Vyhrievanie</th>
+        <th>Nerušiť</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td><button onclick="toggleOccupancy(0)">Prepnúť</button></td>
+        <td><button onclick="toggleHeating(0)">Prepnúť</button></td>
+        <td><button onclick="toggleDoNotDisturb(0)">Prepnúť</button></td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td><button onclick="toggleOccupancy(1)">Prepnúť</button></td>
+        <td><button onclick="toggleHeating(1)">Prepnúť</button></td>
+        <td><button onclick="toggleDoNotDisturb(1)">Prepnúť</button></td>
+      </tr>
+      </tbody>
+  </table>
+
   <script>
-    // Funkcia pre aktualizáciu dát
-    function updateData() {
-      // Získanie dát z ESP32
-      fetch('/occupancy')
-        .then(response => response.text())
-        .then(data => document.getElementById('occupancy').innerText = data);
+    // ... (kód pre aktualizáciu dát) ...
 
-      fetch('/dnd')
+    // Funkcie pre ovládanie
+    function toggleOccupancy(index) {
+      fetch(`/occupancy/${index}`)
         .then(response => response.text())
-        .then(data => document.getElementById('dnd').innerText = data);
-
-      fetch('/feeding')
-        .then(response => response.text())
-        .then(data => document.getElementById('feeding').innerText = data);
+        .then(data => console.log(data));
     }
 
-    // Aktualizácia dát každú sekundu
-    setInterval(updateData, 1000);
+    function toggleHeating(index) {
+      fetch(`/heating/${index}`)
+        .then(response => response.text())
+        .then(data => console.log(data));
+    }
 
-    // Odoslanie formulára pre manuálne kŕmenie
-    document.getElementById('manualFeedForm').addEventListener('submit', function(event) {
-      event.preventDefault();
-      const feedInfo = document.getElementById('feedInfo').value;
-      fetch('/setManualFeed', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `feedInfo=${feedInfo}`
-      })
-      .then(response => response.text())
-      .then(data => console.log(data));
-    });
+    function toggleDoNotDisturb(index) {
+      fetch(`/dnd/${index}`)
+        .then(response => response.text())
+        .then(data => console.log(data));
+    }
   </script>
 </body>
 </html>
