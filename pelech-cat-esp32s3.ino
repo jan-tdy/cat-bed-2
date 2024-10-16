@@ -38,7 +38,8 @@ int currentFeeding = 0;
 // Premenné pre manuálne nastavenie kŕmenia
 String manualFeedInfo = ""; 
 bool manualFeedSet = false;
-  // Funkcia pre zobrazenie informácií na displeji
+
+// Funkcia pre zobrazenie informácií na displeji
 void displayInfo() {
   tft.fillScreen(TFT_BLACK);
   tft.setCursor(0, 0, 4);
@@ -63,10 +64,10 @@ void displayInfo() {
     tft.setCursor(250, 60 + i * 30, 2); 
     if (doNotDisturb[i]) {
       tft.setTextColor(TFT_YELLOW);
-      tft.println("!");
+      tft.println("NR"); // Zobrazenie "NR" pre režim "nerušiť"
     } else {
       tft.setTextColor(TFT_WHITE);
-      tft.println(" ");
+      tft.println("  "); // Zobrazenie dvoch medzier pre zarovnanie
     }
   }
 
@@ -81,7 +82,8 @@ void displayInfo() {
     tft.println(feedTimes[currentFeeding] + " " + String(feedGrams[currentFeeding]) + "g");
   }
 }
-    void setup() {
+
+void setup() {
   // Inicializácia sériovej komunikácie
   Serial.begin(115200);
 
@@ -157,6 +159,17 @@ void displayInfo() {
     if (index >= 0 && index < 10) {
       bedOccupied[index] = !bedOccupied[index];
       request->send(200, "text/plain", "Obsadenosť prepnutie");
+    } else {
+      request->send(400, "text/plain", "Neplatný index");
+    }
+  });
+
+  server.on("/heating/:index", HTTP_GET, [](AsyncWebServerRequest *request){
+    int index = request->pathArg("index").toInt();
+    if (index >= 0 && index < 10) {
+      heatingEnabled[index] = !heatingEnabled[index]; // Prepnutie stavu vyhrievania
+      digitalWrite(heaterPins[index], heatingEnabled[index]); // Zapnutie/vypnutie vyhrievania
+      request->send(200, "text/plain", "Vyhrievanie prepnutie");
     } else {
       request->send(400, "text/plain", "Neplatný index");
     }
